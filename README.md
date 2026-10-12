@@ -1,32 +1,29 @@
-# Spatially resolved transcriptomics identifies an HGF+ HSC niche in MASLD fibrosis
 
-Analysis code for the manuscript.
+# A spatially defined HGF-expressing HSC niche in MASLD fibrosis
 
-## Data sources
+Analysis code for the manuscript by Wu & Yang.
 
-- GSE135251 (bulk RNA-seq, training)
-- GSE49541 (Affymetrix, external validation)
-- GSE130970 (bulk RNA-seq, exploratory validation)
-- GSE292268 (CosMx spatial transcriptomics)
-- GSE202379 (scRNA-seq reference)
+## Data sources (all from GEO)
+- GSE135251 (bulk RNA-seq, n = 216) - training
+- GSE49541  (microarray, n = 72) - external validation
+- GSE130970 (bulk RNA-seq, n = 78) - exploratory validation
+- GSE292268 (CosMx spatial) - spatial niche
+- GSE202379 (scRNA-seq) - single-cell reference
 
-## Pipeline
+## Directory structure
+- 00_setup/ - environment and configuration
+- 01_training_cohort/ - DEG, WGCNA, feature selection
+- 02_model_validation/ - CV, external validation, Firth, calibration
+- 03_spatial_transcriptomics/ - CosMx niche analysis
+- 04_single_cell/ - scRNA-seq validation, TF activity
+- 05_downstream_analyses/ - F0-F4 trends, drug repurposing, MR
+- 06_figures_tables/ - final figures and tables
 
-- 00_setup.R — environment setup
-- 01_CosMx_preprocess.R — cell type composition
-- 02_CosMx_niche.R — HGF+ HSC niche scan
-- 03_CosMx_TF_drug.R — TF activity and drug prediction
-- 04_scRNA_HGF_HSC.R — scRNA validation
-- 05_GSE135251_WGCNA.R — DEG and WGCNA
-- 06_feature_selection_CV.R — four-algorithm selection
-- 07_external_validation.R — GSE49541 validation
-- 08_downstream_pathways.R — JAK/STAT and NF-kB trends
-- 09_figures.R — all figures
-
-## Requirements
-
-R >= 4.3.
+## How to run
+1. Run 00_setup/00_install_packages.R
+2. Edit paths in 00_setup/01_project_config.R
+3. Run scripts in each folder in numerical order
 
 ## Contact
+Hongju Yang (corresponding author)
 
-Corresponding author.
