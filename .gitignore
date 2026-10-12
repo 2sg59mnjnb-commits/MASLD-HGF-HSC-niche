@@ -1,0 +1,17 @@
+# Mac
+.DS_Store
+
+# Data files (too large)
+*.csv.gz
+*.tar
+*.RDS
+*.rds
+
+# R temporary files
+.Rhistory
+.RData
+.Rproj.user/
+
+# Results and figures
+results/
+figures/
