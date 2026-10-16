@@ -7,9 +7,8 @@ Analysis code for the manuscript by Wu & Yang.
 - `analysis_code.R` — the **complete** analysis code for the study, as run. It is a single
   consolidated script organised into numbered modules (Module 0 onward) that follow the
   order of the Methods section.
-- `00_setup/00_install_packages.R`  →  - `00_install_packages.R`
-- `00_setup/01_project_config.R`    →  - `01_project_config.R`
-1. `Rscript 00_setup/00_install_packages.R`  →  1. `Rscript 00_install_packages.R`
+- `00_install_packages.R` — package installation
+- `01_project_config.R` — central configuration (paths, seed, parameters, colours)
 
 > Note on structure: the analyses were carried out as one sequentially-executed script
 > rather than as independent modules. `analysis_code.R` is therefore provided as a single
@@ -28,7 +27,7 @@ Analysis code for the manuscript by Wu & Yang.
 
 ## How to run
 
-1. `Rscript 00_setup/00_install_packages.R`
+1. `Rscript 00_install_packages.R`
 2. Edit the paths at the top of `analysis_code.R` to point at your local copies of the
    GEO datasets (the script uses `setwd("~/Desktop/sjfx3")` throughout; adjust as needed).
 3. Run `analysis_code.R` sequentially.
