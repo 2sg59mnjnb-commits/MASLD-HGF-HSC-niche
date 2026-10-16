@@ -1,49 +1,62 @@
 # =============================================================================
-# Figure 3 修正 + 11 基因组织签名的诚实报告
+# Figure 3 correction + honest reporting of the 11-gene tissue signature
 #
 # -----------------------------------------------------------------------------
-# 问题全貌（三套互不相同的基因集被混在了同一段文字/同一张图里）：
+# The problem in full: three mutually non-overlapping gene sets had been
+# conflated within a single passage of text and a single figure panel.
 #
-#   ① results/HGF_HSC_sig_in_scRNA.csv  —— 原 Figure 3d 实际画的东西
-#        来源：HGFpos_HSC_DEGs_strict.csv 中 avg_log2FC > 0 的 63 个基因
-#        结果：Stellate 0.293 > Endothelial 0.084（HSC 特异，d ≈ 0.92）
+#   (1) results/HGF_HSC_sig_in_scRNA.csv  -- what the original Figure 3d plotted
+#         source : the 63 genes with avg_log2FC > 0 in HGFpos_HSC_DEGs_strict.csv
+#         result : Stellate 0.293 > Endothelial 0.084 (HSC-specific, d ~ 0.92)
 #
-#   ② Cohen's d = 0.92 —— 正文 Results §10 / Discussion §2 引用的数字
-#        来源：signature_HGFpos_up.csv 的 16 个基因
+#   (2) Cohen's d = 0.92 -- the value quoted in Results section 10 / Discussion
+#       section 2
+#         source : the 16 genes in signature_HGFpos_up.csv
 #
-#   ③ 11-gene tissue signature —— 正文与图注真正声称的签名
-#        来源：EYA2/FERMT1/PYROXD2/EPB41L4A/CHI3L1/CNKSR1/ILDR1/GSN/TMPRSS3/ESRRG/SULF2
-#        与 ① 和 ② 的交集均为 **0 个基因**（完全不相交）
+#   (3) the 11-gene tissue signature -- the signature the text and legend
+#       actually claim to score
+#         source : EYA2/FERMT1/PYROXD2/EPB41L4A/CHI3L1/CNKSR1/ILDR1/GSN/
+#                  TMPRSS3/ESRRG/SULF2
+#         intersection with (1) and with (2) is **zero genes** in both cases
 #
-#   实测（本机 GSE202379，99,687 细胞）：
-#        11 基因签名在 Cholangiocytes 最高（0.194），Stellate 仅 0.053，
-#        Endothelial 0.038 → Cohen's d (Stellate vs Endothelial) = 0.102，不是 0.92。
+#   Measured here (local GSE202379, 99,687 cells):
+#         the 11-gene signature is highest in cholangiocytes (0.194), only
+#         0.053 in stellate cells and 0.038 in endothelial cells, so
+#         Cohen's d (stellate vs endothelial) = 0.102 -- not 0.92.
 #
-#   结论：§10 用一套完全不相交的基因集去"验证"11 基因签名，逻辑上不成立；
-#         而真正测 11 基因签名时，它在 scRNA 层面**不是** HSC 特异的。
+#   Conclusion: section 10 "validated" the 11-gene signature using a completely
+#   disjoint gene set, which is not logically valid; and when the 11-gene
+#   signature is actually scored it is **not** HSC-specific at the scRNA level.
 # -----------------------------------------------------------------------------
 #
-# 本脚本做的事：
-#   Part 1  在同一对象上同时打分：16 基因 HGF+ HSC 签名 + 11 基因组织签名
-#           并给出两种打分方法（AddModuleScore 与逐基因 z-score）的交叉验证
-#   Part 2  重画 Figure 3：panel d 改为 **16 基因 HGF+ HSC 签名**（与 panel a/b/c
-#           同源，图内自洽，且该结果确实成立）
-#   Part 3  另出一张补充图：11 基因组织签名在各类细胞中的分布（如实报告）
+# What this script does:
+#   Part 1  Scores both signatures on the same object -- the 16-gene HGF+ HSC
+#           signature and the 11-gene tissue signature -- and cross-checks two
+#           scoring methods (AddModuleScore and per-gene z-score)
+#   Part 2  Redraws Figure 3 with panel d set to the **16-gene HGF+ HSC
+#           signature**, which is homologous to panels a/b/c, internally
+#           consistent, and a result that genuinely holds
+#   Part 3  Produces a separate supplementary figure showing the cell-type
+#           distribution of the 11-gene tissue signature (reported honestly)
 #
-# 用法：  cd ~/Desktop/sjfx3
+# Usage:  cd ~/Desktop/sjfx3
 #         Rscript Figure3_redraw.R
 #
-# 输出：  results/sig16_vs_sig11_in_scRNA.csv
-#         results/signature_celltype_scores.rds      （轻量，便于日后重绘）
-#         figures/final/Figure3_v2.pdf / .png        （主图，panel d 已修正）
-#         figures/final/FigureS_tissue_sig_celltypes.pdf / .png （补充图，如实报告）
+# Output: results/sig16_vs_sig11_in_scRNA.csv
+#         results/signature_celltype_scores.rds      (small; for later redraws)
+#         figures/final/Figure3_v2.pdf / .png        (main figure, panel d fixed)
+#         figures/final/FigureS_tissue_sig_celltypes.pdf / .png  (supplementary)
 # =============================================================================
 
-RUN_PART1 <- TRUE    # 需要 ~1.3 GB Seurat 对象；跑过一次后可关掉
+RUN_PART1 <- TRUE    # needs the ~1.3 GB Seurat object; may be set FALSE after one run
 RUN_PART2 <- TRUE
 RUN_PART3 <- TRUE
 
 setwd("~/Desktop/sjfx3")
+
+# ggrepel places labels with a stochastic repulsion algorithm. Fix the seed so
+# that repeated runs produce an identical figure.
+set.seed(20240501)
 
 sig11 <- c("EYA2", "FERMT1", "PYROXD2", "EPB41L4A", "CHI3L1",
            "CNKSR1", "ILDR1", "GSN", "TMPRSS3", "ESRRG", "SULF2")
@@ -51,13 +64,24 @@ sig16 <- read.csv("results/signature_HGFpos_up.csv")$gene
 
 RED <- "#C73E1D"; BLUE <- "#2E86AB"; LIGHT <- "#F4A582"
 
+# ---------------------------------------------------------------------------
+# Saving. These are the exact calls that produced the published figure. NOTE: if
+# your R installation has no working cairo device, the stock PDF device may
+# silently drop characters it cannot map to its encoding. The PNG is
+# authoritative; a faithful vector PDF requires cairo.
+# ---------------------------------------------------------------------------
+save_fig <- function(plot, stem, w, h) {
+  ggsave(paste0(stem, ".pdf"), plot, width = w, height = h)
+  ggsave(paste0(stem, ".png"), plot, width = w, height = h, dpi = 300)
+}
+
 # =============================================================================
-# Part 1 —— 两套签名 × 两种打分方法
+# Part 1 -- two signatures x two scoring methods
 # =============================================================================
 if (RUN_PART1) {
   suppressPackageStartupMessages({ library(Seurat); library(dplyr) })
 
-  cat("== 载入 scRNA 参考集 ==\n")
+  cat("== Loading scRNA reference ==\n")
   sc <- readRDS("results/GSE202379_seurat_clean.rds")
   DefaultAssay(sc) <- "RNA"
   cat(sprintf("cells = %d | genes = %d\n", ncol(sc), nrow(sc)))
@@ -65,21 +89,21 @@ if (RUN_PART1) {
 
   for (nm in c("sig11", "sig16")) {
     g <- get(nm); p <- g[g %in% rownames(sc)]
-    cat(sprintf("%s: %d/%d 基因可检出", nm, length(p), length(g)))
+    cat(sprintf("%s: %d/%d genes detected", nm, length(p), length(g)))
     if (length(setdiff(g, rownames(sc))))
-      cat("  未检出:", paste(setdiff(g, rownames(sc)), collapse = ", "))
+      cat("  not detected:", paste(setdiff(g, rownames(sc)), collapse = ", "))
     cat("\n")
   }
 
   cohens_d <- function(x, y) (mean(x) - mean(y)) / sqrt((var(x) + var(y)) / 2)
 
-  ## ---- 方法 A：AddModuleScore，nbin = 24（与原图/原稿一致）----
+  ## ---- Method A: AddModuleScore, nbin = 24 (as in the original figure) ----
   sc <- AddModuleScore(sc, features = list(sig11), name = "A11", nbin = 24)
   sc <- AddModuleScore(sc, features = list(sig16), name = "A16", nbin = 24)
   sc$sig11_add <- sc$A111
   sc$sig16_add <- sc$A161
 
-  ## ---- 方法 B：逐基因 z-score 后取均值（不依赖对照基因分箱）----
+  ## ---- Method B: per-gene z-score, then mean (no control-gene binning) ----
   expr <- GetAssayData(sc, assay = "RNA", layer = "data")
   zmean <- function(genes) {
     g <- genes[genes %in% rownames(sc)]
@@ -90,7 +114,7 @@ if (RUN_PART1) {
   sc$sig11_z <- zmean(sig11)
   sc$sig16_z <- zmean(sig16)
 
-  ## ---- 汇总 ----
+  ## ---- Summary ----
   tb <- sc[[]] %>%
     group_by(cell.annotation) %>%
     summarise(N = n(),
@@ -100,12 +124,12 @@ if (RUN_PART1) {
               sig16_zscore         = mean(sig16_z),
               .groups = "drop") %>%
     arrange(desc(sig16_AddModuleScore))
-  cat("\n== 两套签名在各类细胞中的均值 ==\n")
+  cat("\n== Mean score per cell type, both signatures ==\n")
   print(as.data.frame(tb))
   write.csv(tb, "results/sig16_vs_sig11_in_scRNA.csv", row.names = FALSE)
 
   cat("\n== Stellate vs Endothelial ==\n")
-  md <- sc[[]]                     # 取 meta.data，避免 Seurat [[ ]] 的歧义
+  md <- sc[[]]                     # use meta.data directly to avoid Seurat [[ ]] ambiguity
   for (v in c("sig11_add", "sig11_z", "sig16_add", "sig16_z")) {
     st <- md[[v]][ct == "Stellate"]; en <- md[[v]][ct == "Endothelial"]
     cat(sprintf("%-11s  Stellate %.4f | Endothelial %.4f | Cohen's d = %+.3f | Wilcoxon P = %.2e\n",
@@ -115,18 +139,18 @@ if (RUN_PART1) {
   saveRDS(sc[[]][, c("cell.annotation", "sig11_add", "sig16_add", "sig11_z", "sig16_z")],
           "results/signature_celltype_scores.rds")
   rm(sc, expr); gc()
-  cat("\n== Part 1 完成 ==\n")
+  cat("\n== Part 1 complete ==\n")
 }
 
 # =============================================================================
-# Part 2 —— 主图 Figure 3（panel d = 16 基因 HGF+ HSC 签名）
+# Part 2 -- main Figure 3 (panel d = 16-gene HGF+ HSC signature)
 # =============================================================================
 if (RUN_PART2) {
   suppressPackageStartupMessages({ library(ggplot2); library(dplyr); library(patchwork) })
-  if (!requireNamespace("ggrepel", quietly = TRUE)) stop("需要 ggrepel")
+  if (!requireNamespace("ggrepel", quietly = TRUE)) stop("ggrepel is required")
   theme_pub <- function(bs = 10) theme_classic(base_size = bs)
 
-  ## panel a：跨切片 pseudobulk DEG（不变）
+  ## panel a: cross-slide pseudobulk DEG (unchanged)
   merged_pb <- inner_join(
     read.csv("results/DEG_pseudobulk_Slide1.csv") %>% dplyr::select(gene, log2FC_1 = logFC),
     read.csv("results/DEG_pseudobulk_Slide2.csv") %>% dplyr::select(gene, log2FC_2 = logFC),
@@ -144,7 +168,7 @@ if (RUN_PART2) {
          x = "log2FC Slide1", y = "log2FC Slide2") +
     coord_cartesian(xlim = c(-1.5, 1.5), ylim = c(-1.5, 1.5)) + theme_pub()
 
-  ## panel b：单细胞 Δ positive rate（不变）
+  ## panel b: single-cell delta positive rate (unchanged)
   rv <- read.csv("results/signature_up_single_cell_validation.csv")
   rv$gene <- factor(rv$gene, levels = rv$gene[order(rv$delta_pos)])
   p3b <- ggplot(rv, aes(gene, delta_pos, fill = delta_pos)) +
@@ -152,10 +176,10 @@ if (RUN_PART2) {
     geom_hline(yintercept = .05, linetype = "dashed", color = "grey40") +
     scale_fill_gradient(low = LIGHT, high = RED) + coord_flip() +
     labs(title = "Single-cell validation (Slide2)",
-         subtitle = "Δ positive rate (HGF+ minus HGF-)", x = NULL, y = "Δ positive rate") +
+         subtitle = "\u0394 positive rate (HGF+ minus HGF-)", x = NULL, y = "\u0394 positive rate") +
     theme_pub() + theme(legend.position = "none")
 
-  ## panel c：GO BP（不变）
+  ## panel c: GO BP (unchanged)
   go <- read.csv("results/sig16_GO_BP.csv") %>% head(10)
   p3c <- ggplot(go, aes(reorder(Description, p.adjust), -log10(p.adjust),
                         fill = -log10(p.adjust))) +
@@ -163,7 +187,7 @@ if (RUN_PART2) {
     labs(title = "GO BP enrichment (16-gene signature)", x = NULL, y = "-log10(adj.P)") +
     theme_pub() + theme(legend.position = "none", axis.text.y = element_text(size = 7))
 
-  ## panel d：修正为 16 基因 HGF+ HSC 签名
+  ## panel d: corrected to the 16-gene HGF+ HSC signature
   sc16 <- readRDS("results/signature_celltype_scores.rds")
   d16 <- sc16 %>% group_by(cell.annotation) %>%
     summarise(N = n(), Mean = mean(sig16_add), .groups = "drop")
@@ -176,13 +200,13 @@ if (RUN_PART2) {
     theme_pub() + theme(legend.position = "none")
 
   fig3 <- (p3a | p3b) / (p3c | p3d) + plot_annotation(tag_levels = "a")
-  ggsave("figures/final/Figure3_v2.pdf", fig3, width = 12, height = 10)
-  ggsave("figures/final/Figure3_v2.png", fig3, width = 12, height = 10, dpi = 300)
-  cat("\n== Figure3_v2 已保存（panel d 已改为 16 基因签名）==\n")
+  save_fig(fig3, "figures/final/Figure3_v2", 12, 10)
+  cat("\n== Figure3_v2 saved (panel d now shows the 16-gene signature) ==\n")
 }
 
 # =============================================================================
-# Part 3 —— 补充图：11 基因组织签名的细胞类型分布（如实报告）
+# Part 3 -- supplementary figure: cell-type distribution of the 11-gene
+#           tissue signature (reported honestly)
 # =============================================================================
 if (RUN_PART3) {
   suppressPackageStartupMessages({ library(ggplot2); library(dplyr) })
@@ -199,7 +223,6 @@ if (RUN_PART3) {
          x = NULL, y = "Mean module score") +
     theme_classic(base_size = 10) + theme(legend.position = "none")
 
-  ggsave("figures/final/FigureS_tissue_sig_celltypes.pdf", p, width = 6, height = 4.5)
-  ggsave("figures/final/FigureS_tissue_sig_celltypes.png", p, width = 6, height = 4.5, dpi = 300)
-  cat("== 补充图 FigureS_tissue_sig_celltypes 已保存 ==\n")
+  save_fig(p, "figures/final/FigureS_tissue_sig_celltypes", 6, 4.5)
+  cat("== Supplementary figure FigureS_tissue_sig_celltypes saved ==\n")
 }

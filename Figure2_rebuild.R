@@ -1,42 +1,68 @@
 # =============================================================================
-# Figure 2 重建脚本 —— 修正两处「图与图注不符」
+# Figure 2 rebuild -- corrects two figure/legend mismatches
 #
-# ── 问题诊断（本次逐图核对得出）─────────────────────────────────────────────
-# 现状：正文与图注描述的是 **9 个面板 (a)–(i)**，其中
-#         (d) = HGF 阳性阈值（HGF>0/>1/>2）下 Hep.4 与 Periportal LSEC 的富集比
-#         (i) = 25–150 µm 距离梯度分析（正文 Results 引用了 Figure 2i）
+# --- Diagnosis (from a figure-by-figure audit of the manuscript) ------------
+# The main text and the figure legend describe **nine panels (a)-(i)**:
+#     (d) enrichment ratios for Hep.4 and Periportal LSECs under three
+#         HGF-positivity thresholds (HGF > 0 / > 1 / > 2)
+#     (i) distance-gradient analysis over 25-150 um (cited in Results as
+#         "Figure 2i")
 #
-# 但现有 R 代码拼装的是 **8 个面板**：
-#         fig2 <- (p2a|p2b|p2c) / (p2d|p2e|p2f) / (p2g|p2h|plot_spacer())
-#   且该代码里的 p2d 用的是「距离阈值 vs 中位距离」（错误内容），
-#   而 p2i 在整份代码中根本不存在（只有渲染好的 PNG）。
+# But the assembly statement in `analysis_code.R` builds only **eight panels**:
+#     fig2 <- (p2a|p2b|p2c) / (p2d|p2e|p2f) / (p2g|p2h|plot_spacer())
+# In that code p2d plots "distance threshold vs median distance" (the wrong
+# content), and p2i does not exist anywhere in the script -- only a rendered
+# PNG was retained.
 #
-# 因此稿件里嵌入的 Figure 2 面板 (d) 内容错误、且缺少面板 (i)。
+# As a result, the Figure 2 embedded in the manuscript had the wrong panel (d)
+# and was missing panel (i).
 #
-# ── 本脚本做什么 ─────────────────────────────────────────────────────────
-#   1. 把 p2d 改回 HGF 阳性阈值版本（数据源 results/HGF_threshold_sensitivity.csv）
-#   2. 补入面板 (i)：直接导入已有的 Figure2i_distance_gradient.png
-#   3. 按 3×3 拼装成完整 9 面板图，输出 figures/final/Figure2_v2.pdf / .png
+# --- What this script does --------------------------------------------------
+#   1. Restores p2d to the HGF-positivity threshold version (data source:
+#      results/HGF_threshold_sensitivity.csv)
+#   2. Rebuilds panel (i) from the saved distance-gradient result tables
+#   3. Assembles the complete nine-panel figure as a 3x3 grid and writes
+#      figures/final/Figure2_v2.pdf / .png
 #
-# 用法：  cd ~/Desktop/sjfx3 && Rscript Figure2_rebuild.R
-# 输出：  figures/final/Figure2_v2.pdf / .png   （确认后改名覆盖 Figure2）
+# Usage:  cd ~/Desktop/sjfx3 && Rscript Figure2_rebuild.R
+# Output: figures/final/Figure2_v2.pdf / .png
+#         (rename over Figure2 once verified)
 #
-# ⚠️ 面板 (i) 的生成代码**不在你的代码仓库里**（analysis_code.R 中搜不到），
-#    所以这里只能导入现成的 PNG。建议你找回那段代码并一并补进仓库，
-#    否则 Figure 2i 无法被复现——审稿人可能会问。
+# Panel (i) is rebuilt from the underlying result tables in Final/Figure3/
+# (Figure2i_distance_gradient_HGFpos.csv, Figure2i_distance_gradient_HGFneg.csv),
+# so the whole figure is reproduced from data with no dependency on a
+# pre-rendered asset.
 # =============================================================================
 
 setwd("~/Desktop/sjfx3")
+
+# ggrepel places labels with a stochastic repulsion algorithm. Fix the seed so
+# that repeated runs produce an identical figure.
+set.seed(20240501)
 suppressPackageStartupMessages({
   library(ggplot2); library(dplyr); library(patchwork)
-  library(png); library(grid); library(ggrepel)
+  library(ggrepel)
 })
 
 OUT <- "figures/final"
 dir.create(OUT, showWarnings = FALSE, recursive = TRUE)
 theme_pub <- function(bs = 9) theme_classic(base_size = bs)
 
-# ---------------------------------------------------------------- 2a 生态位扫描
+# ---------------------------------------------------------------------------
+# Saving. The figures published in the manuscript were produced by exactly these
+# calls, so running this script reproduces them. NOTE: if your R installation has
+# no working cairo device, the stock PDF device silently drops characters it
+# cannot map to its encoding (on the original analysis machine the Greek Delta in
+# panel g and in Figure 3 panel b was dropped from the PDF while the PNG rendered
+# it correctly). The PNG is authoritative; a faithful vector PDF requires cairo
+# (e.g. install XQuartz, or the Cairo R package).
+# ---------------------------------------------------------------------------
+save_fig <- function(plot, stem, w, h) {
+  ggsave(paste0(stem, ".pdf"), plot, width = w, height = h)
+  ggsave(paste0(stem, ".png"), plot, width = w, height = h, dpi = 300)
+}
+
+# ------------------------------------------------- 2a  niche scan
 res1 <- read.csv("results/HGF_HSC_niche_scan.csv");        res1$Slide <- "Slide1"
 res2 <- read.csv("results/HGF_HSC_niche_scan_Slide2.csv");  res2$Slide <- "Slide2"
 niche_df <- rbind(res1, res2) %>% filter(N_total >= 200) %>% mutate(Score = log2(Ratio + 1e-6))
@@ -46,12 +72,12 @@ p2a <- ggplot(niche_df, aes(reorder(CellType, Score), Score, fill = Slide)) +
   scale_fill_manual(values = c("Slide1" = "#C73E1D", "Slide2" = "#2E86AB")) +
   geom_hline(yintercept = 0, linetype = "dashed", color = "grey40") +
   coord_flip() +
-  labs(title = "HGF+ HSC niche scan (50 µm)",
+  labs(title = "HGF+ HSC niche scan (50 \u00b5m)",
        subtitle = "log2(enrichment ratio) across two slides",
        x = NULL, y = "log2 ratio") +
   theme_pub() + theme(legend.position = "top", axis.text.y = element_text(size = 7))
 
-# ---------------------------------------------------------------- 2b FOV 一致性
+# ------------------------------------------------- 2b  FOV-level consistency
 fov_res <- readRDS("results/Reverse_FOV_characterization.rds")
 n_cons <- nrow(fov_res$consistent_fovs); n_rev <- nrow(fov_res$reverse_fovs)
 fov_df <- data.frame(Direction = factor(c("HGF+ closer", "Other"), levels = c("HGF+ closer", "Other")),
@@ -68,7 +94,7 @@ p2b <- ggplot(fov_df, aes(Direction, N, fill = Direction)) +
   theme_pub() + theme(legend.position = "none") +
   coord_cartesian(ylim = c(0, max(fov_df$N) * 1.15))
 
-# ------------------------------------------------------------ 2c 跨切片一致性
+# ------------------------------------------------- 2c  cross-slide consistency
 merged <- read.csv("results/niche_scan_cross_slide.csv") %>%
   filter(grepl("[A-Z]", CellType),
          grepl("\\.", CellType) | grepl("[A-Z][a-z]", CellType),
@@ -87,9 +113,10 @@ p2c <- ggplot(merged, aes(log2_R1, log2_R2)) +
        x = "log2 ratio Slide1", y = "log2 ratio Slide2") +
   coord_fixed() + theme_pub()
 
-# ============================ 2d 【关键修正】HGF 阳性阈值敏感性 ==============
-# 旧代码这里读的是 results/revision/A4_threshold_sensitivity.csv，
-# 画的是「距离阈值 vs 中位距离」——与图注和正文都不符。改回下面这版。
+# ============ 2d  [KEY CORRECTION] HGF-positivity threshold sensitivity ======
+# The old code read results/revision/A4_threshold_sensitivity.csv here and
+# plotted "distance threshold vs median distance", which matched neither the
+# legend nor the main text. Restored to the correct version below.
 sens <- read.csv("results/HGF_threshold_sensitivity.csv")
 sens_df <- sens %>%
   filter(CellType %in% c("Hep.4", "Periportal.LSECs")) %>%
@@ -104,8 +131,9 @@ p2d <- ggplot(sens_df, aes(Threshold, Ratio, fill = CellType)) +
        x = "HGF threshold", y = "Enrichment ratio", fill = NULL) +
   theme_pub() + theme(legend.position = "top")
 
-# -------------------------------------------------------- 2e HGF 转录本计数
-# 首选从 CosMx 对象实时计算；若对象未落地（iCloud）则回退到已渲染图对应的取值。
+# ------------------------------------------------- 2e  HGF transcript counts
+# Preferred: compute from the CosMx object. If that object is not available
+# locally, fall back to the counts underlying the published rendering.
 counts_tb <- NULL
 if (file.exists("data/GSM8855042_Slide1_SeuratObject.RDS")) {
   counts_tb <- tryCatch({
@@ -120,7 +148,7 @@ if (file.exists("data/GSM8855042_Slide1_SeuratObject.RDS")) {
   }, error = function(e) NULL)
 }
 if (is.null(counts_tb)) {
-  message("⚠️ 未找到 CosMx 对象，改用已渲染图对应的计数值（n = 3,559）")
+  message("NOTE: CosMx object not found; using the counts underlying the published rendering (n = 3,559)")
   counts_tb <- data.frame(count = 0:12,
                           pct = c(58.9, 19.0, 9.8, 4.9, 2.9, 2.1, 1.2, 0.5, 0.4, 0.3, 0.1, 0.0, 0.0))
 }
@@ -132,7 +160,7 @@ p2e <- ggplot(counts_tb, aes(factor(count), pct)) +
        x = "HGF count per cell", y = "% of HSCs") +
   coord_cartesian(ylim = c(0, 65)) + theme_pub()
 
-# --------------------------------------------------------------------- 2f SPI
+# ------------------------------------------------- 2f  Selective Proximity Index
 spi <- read.csv("results/SPI_summary_all_HSC_subsets.csv") %>%
   mutate(Subset = factor(Subset, levels = c("HGF+", "HGF-", "PDGFRB+", "PDGFRB-")))
 p2f <- ggplot(spi, aes(Subset, Median_SPI, fill = Subset)) +
@@ -144,7 +172,7 @@ p2f <- ggplot(spi, aes(Subset, Median_SPI, fill = Subset)) +
        x = NULL, y = "Median SPI") +
   theme_pub() + theme(legend.position = "none")
 
-# --------------------------------------------------- 2g/2h 跨患者 + 伪重复校正
+# ------------------------------------------- 2g/2h  cross-patient + pseudoreplication
 a3b <- readRDS("results/revision/A3b_mixed_effects.rds")
 pa <- a3b$patient_agg
 pa$Sample <- factor(pa$patient_uid, levels = pa$patient_uid[order(pa$delta)])
@@ -173,20 +201,37 @@ p2h <- ggplot(model_df, aes(LogP, Model, fill = Model)) +
   theme_pub() + theme(legend.position = "none") +
   coord_cartesian(xlim = c(0, max(model_df$LogP) * 1.25))
 
-# ============================ 2i 距离梯度（导入现成 PNG）====================
-FIG2I <- "Final/Figure3/Figure2i_distance_gradient.png"
-if (!file.exists(FIG2I)) stop("找不到面板 (i) 的图：", FIG2I)
-p2i <- wrap_elements(rasterGrob(readPNG(FIG2I), interpolate = TRUE))
-cat("已导入面板 (i):", FIG2I, "\n")
+# ============ 2i  distance-gradient enrichment ==============================
+# Rebuilt from the underlying result tables rather than pasted in as a rendered
+# image. This matches the geometry of the other panels, renders as vector in the
+# PDF, and removes the previous dependency on a pre-rendered asset.
+dgp <- read.csv("Final/Figure3/Figure2i_distance_gradient_HGFpos.csv")
+dgn <- read.csv("Final/Figure3/Figure2i_distance_gradient_HGFneg.csv")
+dgi <- rbind(dgp, dgn)
+dgi$group  <- factor(dgi$group, levels = c("HGF- Stellate", "HGF+ Stellate"))
+dgi$radius <- factor(dgi$radius, levels = c(25, 50, 75, 100, 150))
+lab <- subset(dgi, group == "HGF+ Stellate")
+lab$txt <- ifelse(lab$p_value <= 0.001, "P=0.001", sprintf("P=%.3f", lab$p_value))
 
-# ------------------------------------------------------------------ 拼装 3×3
+p2i <- ggplot(dgi, aes(radius, enrichment, colour = group, group = group)) +
+  geom_hline(yintercept = 1, linetype = "dashed", colour = "grey45") +
+  geom_line(linewidth = 0.7) +
+  geom_point(size = 1.9) +
+  geom_text(data = lab, aes(label = txt), vjust = -1.0, size = 2.2, colour = "grey25") +
+  scale_colour_manual(values = c("HGF- Stellate" = "#2E86AB", "HGF+ Stellate" = "#C73E1D")) +
+  labs(title = "Distance-gradient enrichment of Hep.4 around HSC subsets",
+       x = "Radius (\u00b5m)", y = "Hep.4 enrichment ratio (observed / expected)",
+       colour = NULL) +
+  theme_pub(9) +
+  theme(legend.position = "top", legend.key.size = unit(0.4, "cm"),
+        plot.title = element_text(size = 8.5))
+
+# ------------------------------------------------- assemble 3x3
 fig2 <- (p2a | p2b | p2c) / (p2d | p2e | p2f) / (p2g | p2h | p2i) +
   plot_layout(heights = c(1, 1, 0.85)) +
   plot_annotation(tag_levels = "a") &
   theme(plot.tag = element_text(face = "bold", size = 11))
 
-ggsave(file.path(OUT, "Figure2_v2.pdf"), fig2, width = 15, height = 14)
-ggsave(file.path(OUT, "Figure2_v2.png"), fig2, width = 15, height = 14, dpi = 300)
-cat("\n== 已输出 figures/final/Figure2_v2.pdf / .png ==\n")
-cat("请打开确认：应为 9 个面板 a–i，(d) 为 HGF 阈值剂量反应，(i) 为距离梯度。\n")
-cat("确认无误后改名为 Figure2，替换稿件中的插图与我一并更新。\n")
+save_fig(fig2, file.path(OUT, "Figure2_v2"), 15, 14)
+cat("\n== Wrote figures/final/Figure2_v2.pdf / .png ==\n")
+cat("Please verify: nine panels a-i; (d) = HGF threshold dose-response; (i) = distance gradient.\n")

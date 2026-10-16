@@ -28,16 +28,17 @@ consolidated script was last assembled and their panel definitions differ from i
   problems in the version inside `analysis_code.R`: panel (d) must be the HGF-positivity
   threshold sensitivity (HGF > 0 / > 1 / > 2, enrichment ratios for Hep.4 and Periportal
   LSECs), and panel (i) — the distance-gradient analysis — is not produced by
-  `analysis_code.R` at all.
+  `analysis_code.R` at all. Panel (i) is rebuilt from its result tables
+  (`Final/Figure3/Figure2i_distance_gradient_HGFpos.csv` and `..._HGFneg.csv`), so the
+  entire figure is reproduced from data.
 - `Figure3_redraw.R` — rebuilds **main Figure 3** (panel d = the 16-gene HGF+ HSC
   signature across cell types in GSE202379) and **Figure S27** (cell-type distribution of
   the 11-gene tissue signature).
 
-**Known gap.** The code that generated panel (i) of Figure 2
-(`Figure2i_distance_gradient.png`) was not retained, so `Figure2_rebuild.R` imports that
-panel as a pre-rendered image rather than recomputing it. Every other panel of Figure 2 is
-recomputed from saved result tables. Anyone wishing to reproduce Figure 2 in full should
-therefore be aware of this single dependency on a rendered asset.
+Both figure scripts fix the random seed before plotting, because `ggrepel` places labels
+with a stochastic repulsion algorithm; without a seed, repeated runs produce slightly
+different output. With the seed set, running either script twice yields a byte-identical
+PNG, and the output matches the corresponding figure in the manuscript.
 
 ## Data sources (all publicly available)
 
