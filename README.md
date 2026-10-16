@@ -1,62 +1,79 @@
-# Exploratory analyses not reported in the manuscript
+# A spatially defined HGF-expressing HSC niche in MASLD fibrosis
 
-The scripts and notes in this folder concern analyses that were carried out during the
-study but that are **not** reported in the manuscript. They are deposited for transparency,
-so that the corresponding code inside `analysis_code.R` is not left as an unreproducible
-fragment. **Their results should not be interpreted as part of the published findings.**
+Analysis code for the manuscript by Wu & Yang.
 
----
+## Repository contents
 
-## 1. cis-Mendelian randomisation — `MR_data_preparation.sh`, `MR_pipeline_cis_eQTL.R`
+| File | Contents |
+|---|---|
+| `analysis_code.R` | The **complete** analysis code for the study, as run. A single consolidated script organised into numbered modules (Module 0 onward) that follow the order of the Methods section. |
+| `00_install_packages.R` | Package installation |
+| `01_project_config.R` | Central configuration (paths, seed, parameters, colours) |
+| `Figure2_rebuild.R` | Rebuilds **main Figure 2** (standalone; see below) |
+| `Figure3_redraw.R` | Rebuilds **main Figure 3** and **Additional file 1, Figure S27** (standalone) |
+| `MR_data_preparation.sh`, `MR_pipeline_cis_eQTL.R` | cis-Mendelian randomisation analysis — **carried out but not reported**; see `NOTES_exploratory_analyses.md` |
+| `NOTES_exploratory_analyses.md` | Why the exploratory analyses above are not part of the published findings |
 
-A cis-MR analysis testing whether genetically proxied expression of the signature genes
-and of the HGF-MET-IL6R axis is associated with liver fibrosis / cirrhosis.
+> Note on structure: the analyses were carried out as one sequentially-executed script
+> rather than as independent modules. `analysis_code.R` is therefore provided as a single
+> file; module headers inside it correspond to the analysis stages (training cohort, model
+> validation, spatial transcriptomics, single-cell, downstream analyses, figures/tables).
 
-**Status: not completed, not reported.** Three reasons, all documented in the script headers:
+## Figure scripts
 
-1. The full eQTLGen cis-eQTL resource (~3.7 GB) could not be downloaded reliably in the
-   analysis environment. The partial local copy contained only **1,204 of ~16,000 genes**.
-2. **HGF, MET, IL6R, LIFR and OSMR had no genome-wide significant *cis*-eQTL in the
-   available blood eQTL data.** The mechanism axis central to the manuscript therefore
-   could not be tested by this method at all. Only four of the eleven signature genes were
-   instrumentable: CHI3L1, GSN, IL11RA and SULF2.
-3. A GTEx v8 eQTL archive was obtained, but the download was truncated alphabetically at
-   `Heart_Atrial_Appendage` and did not include liver - the tissue of interest.
+Two main figures are rebuilt by dedicated scripts, because they were revised after the
+consolidated script was last assembled and their panel definitions differ from it:
 
-An earlier, methodologically flawed version of this analysis is present in
-`analysis_code.R` (module `05_downstream_analyses`). It is superseded by
-`MR_pipeline_cis_eQTL.R`, which corrects three problems:
+- `Figure2_rebuild.R` — rebuilds **main Figure 2** (nine panels a–i). It corrects two
+  problems in the version inside `analysis_code.R`: panel (d) must be the HGF-positivity
+  threshold sensitivity (HGF > 0 / > 1 / > 2, enrichment ratios for Hep.4 and Periportal
+  LSECs), and panel (i) — the distance-gradient analysis — is not produced by
+  `analysis_code.R` at all.
+- `Figure3_redraw.R` — rebuilds **main Figure 3** (panel d = the 16-gene HGF+ HSC
+  signature across cell types in GSE202379) and **Figure S27** (cell-type distribution of
+  the 11-gene tissue signature).
 
-- it uses **measured allele frequencies** instead of an assumed `MAF = 0.25` to convert
-  eQTLGen Z-scores to effect sizes;
-- it uses a **liver-fibrosis-specific outcome** (FinnGen R12 `K11_FIBROCHIRLIV`) instead
-  of a NAFLD GWAS;
-- it adds **colocalisation** (`coloc.abf`) rather than relying on a single-SNP Wald ratio.
+**Known gap.** The code that generated panel (i) of Figure 2
+(`Figure2i_distance_gradient.png`) was not retained, so `Figure2_rebuild.R` imports that
+panel as a pre-rendered image rather than recomputing it. Every other panel of Figure 2 is
+recomputed from saved result tables. Anyone wishing to reproduce Figure 2 in full should
+therefore be aware of this single dependency on a rendered asset.
 
-If this analysis is ever completed, the negative or uninformative result for the mechanism
-axis must be reported as such.
+## Data sources (all publicly available)
 
----
+| Dataset | Type | Role |
+|---|---|---|
+| GSE135251 | bulk RNA-seq, n = 216 | development cohort |
+| GSE49541  | microarray, n = 72 | primary external validation |
+| GSE130970 | bulk RNA-seq, n = 78 | exploratory validation |
+| GSE292268 | CosMx spatial transcriptomics | spatial niche analysis |
+| GSE202379 | scRNA-seq | single-cell reference |
 
-## 2. scTenifold virtual knockout of HGF in the HSC network
+## How to run
 
-Located in `analysis_code.R` (`05_downstream_analyses`). **Completed but not reported in
-the manuscript.**
+1. `Rscript 00_install_packages.R`
+2. Edit the paths at the top of `analysis_code.R` to point at your local copies of the GEO
+   datasets (the script uses `setwd("~/Desktop/sjfx3")` throughout; adjust as needed).
+3. Run `analysis_code.R` sequentially. The figure scripts require the intermediate result
+   tables that this produces, so run it first.
 
-The in-silico knockout of *HGF* in a gene regulatory network built from the single-cell HSC
-compartment (8,327 genes x 3,228 cells, 10 networks of 500 cells each) flagged **3 of 8,327
-genes** as significantly differentially regulated at FDR < 0.05:
+## Scope and limitations
 
-| gene  | distance | Z    | p.adj |
-|-------|----------|------|-------|
-| HGF   | 1.74e-04 | 5.53 | 0 |
-| RBMS3 | 2.25e-05 | 4.38 | 6.73e-28 |
-| PDE4D | 9.71e-06 | 3.93 | 1.34e-03 |
+- The code reproduces the analyses reported in the manuscript. Two exploratory analyses
+  that are **not** reported in the manuscript are also present in `analysis_code.R`
+  (a cis-Mendelian randomisation analysis and a scTenifold virtual-knockout analysis).
+  These are documented, with their reasons for non-reporting, in
+  `NOTES_exploratory_analyses.md`. They should not be interpreted as part of the published
+  findings.
+- Absolute paths (`~/Desktop/sjfx3/...`) reflect the working environment of the original
+  analysis and must be edited before the code will run elsewhere.
+- Transcriptomic data are not redistributed here; download them from GEO using the
+  accessions above.
 
-Not used in the manuscript: *HGF* is the knocked-out gene itself, leaving only two
-downstream candidates (RBMS3, PDE4D), which was judged too thin a basis for any claim.
+## Licence
 
-> Note on file naming: the outputs retained on disk carry a `_FAILED` suffix from an
-> earlier, unsuccessful run of the same script. The values above are from the successful
-> run recorded in `hgf_ko.log`. Any future re-run should write to unsuffixed filenames to
-> avoid confusion.
+See `LICENSE`.
+
+## Contact
+
+Hongju Yang (corresponding author)
