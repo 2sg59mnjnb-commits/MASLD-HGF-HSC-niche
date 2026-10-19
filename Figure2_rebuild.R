@@ -1,37 +1,23 @@
 # =============================================================================
-# Figure 2 rebuild -- corrects two figure/legend mismatches
+# Figure 2 -- HGF+ HSC spatial niche (nine-panel display figure)
 #
-# --- Diagnosis (from a figure-by-figure audit of the manuscript) ------------
-# The main text and the figure legend describe **nine panels (a)-(i)**:
-#     (d) enrichment ratios for Hep.4 and Periportal LSECs under three
-#         HGF-positivity thresholds (HGF > 0 / > 1 / > 2)
-#     (i) distance-gradient analysis over 25-150 um (cited in Results as
-#         "Figure 2i")
+# Input
+#   results/HGF_HSC_niche_scan.csv, results/HGF_HSC_niche_scan_Slide2.csv
+#   results/Reverse_FOV_characterization.rds, results/niche_scan_cross_slide.csv
+#   results/HGF_threshold_sensitivity.csv
+#   results/SPI_summary_all_HSC_subsets.csv, results/revision/A3b_mixed_effects.rds
+#   Final/Figure3/Figure2i_distance_gradient_HGFpos.csv / _HGFneg.csv
+#   data/GSM8855042_Slide1_SeuratObject.RDS (optional; only for panel e)
+# Output
+#   figures/final/Figure2_v2.pdf / .png
 #
-# But the assembly statement in `analysis_code.R` builds only **eight panels**:
-#     fig2 <- (p2a|p2b|p2c) / (p2d|p2e|p2f) / (p2g|p2h|plot_spacer())
-# In that code p2d plots "distance threshold vs median distance" (the wrong
-# content), and p2i does not exist anywhere in the script -- only a rendered
-# PNG was retained.
+# Panels: a niche scan; b FOV-level direction consistency; c cross-slide
+# consistency; d HGF-positivity threshold sensitivity; e HGF transcript counts;
+# f Selective Proximity Index; g cross-patient consistency; h pseudoreplication
+# correction; i distance-gradient enrichment.
 #
-# As a result, the Figure 2 embedded in the manuscript had the wrong panel (d)
-# and was missing panel (i).
-#
-# --- What this script does --------------------------------------------------
-#   1. Restores p2d to the HGF-positivity threshold version (data source:
-#      results/HGF_threshold_sensitivity.csv)
-#   2. Rebuilds panel (i) from the saved distance-gradient result tables
-#   3. Assembles the complete nine-panel figure as a 3x3 grid and writes
-#      figures/final/Figure2_v2.pdf / .png
-#
-# Usage:  cd ~/Desktop/sjfx3 && Rscript Figure2_rebuild.R
-# Output: figures/final/Figure2_v2.pdf / .png
-#         (rename over Figure2 once verified)
-#
-# Panel (i) is rebuilt from the underlying result tables in Final/Figure3/
-# (Figure2i_distance_gradient_HGFpos.csv, Figure2i_distance_gradient_HGFneg.csv),
-# so the whole figure is reproduced from data with no dependency on a
-# pre-rendered asset.
+# Requires the intermediate result tables produced by analysis_code.R.
+# Usage: cd ~/Desktop/sjfx3 && Rscript Figure2_rebuild.R
 # =============================================================================
 
 setwd("~/Desktop/sjfx3")

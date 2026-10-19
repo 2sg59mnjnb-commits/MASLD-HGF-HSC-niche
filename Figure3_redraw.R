@@ -1,51 +1,25 @@
 # =============================================================================
-# Figure 3 correction + honest reporting of the 11-gene tissue signature
+# Figure 3 -- cell-type distribution of the 16-gene HGF+ HSC signature and of
+#             the 11-gene tissue signature (GSE202379)
 #
-# -----------------------------------------------------------------------------
-# The problem in full: three mutually non-overlapping gene sets had been
-# conflated within a single passage of text and a single figure panel.
+# Input
+#   results/signature_HGFpos_up.csv
+#   results/GSE202379_seurat_clean.rds            (Part 1 only)
+#   results/DEG_pseudobulk_Slide1.csv / _Slide2.csv
+#   results/signature_up_single_cell_validation.csv
+#   results/sig16_GO_BP.csv
+#   results/signature_celltype_scores.rds
+# Output
+#   results/sig16_vs_sig11_in_scRNA.csv
+#   results/signature_celltype_scores.rds
+#   figures/final/Figure3_v2.pdf / .png
+#   figures/final/FigureS_tissue_sig_celltypes.pdf / .png
 #
-#   (1) results/HGF_HSC_sig_in_scRNA.csv  -- what the original Figure 3d plotted
-#         source : the 63 genes with avg_log2FC > 0 in HGFpos_HSC_DEGs_strict.csv
-#         result : Stellate 0.293 > Endothelial 0.084 (HSC-specific, d ~ 0.92)
+# Part 1 scores both signatures in GSE202379 (two scoring methods).
+# Part 2 builds Figure 3 (panel d = 16-gene HGF+ HSC signature).
+# Part 3 builds the supplementary figure for the 11-gene tissue signature.
 #
-#   (2) Cohen's d = 0.92 -- the value quoted in Results section 10 / Discussion
-#       section 2
-#         source : the 16 genes in signature_HGFpos_up.csv
-#
-#   (3) the 11-gene tissue signature -- the signature the text and legend
-#       actually claim to score
-#         source : EYA2/FERMT1/PYROXD2/EPB41L4A/CHI3L1/CNKSR1/ILDR1/GSN/
-#                  TMPRSS3/ESRRG/SULF2
-#         intersection with (1) and with (2) is **zero genes** in both cases
-#
-#   Measured here (local GSE202379, 99,687 cells):
-#         the 11-gene signature is highest in cholangiocytes (0.194), only
-#         0.053 in stellate cells and 0.038 in endothelial cells, so
-#         Cohen's d (stellate vs endothelial) = 0.102 -- not 0.92.
-#
-#   Conclusion: section 10 "validated" the 11-gene signature using a completely
-#   disjoint gene set, which is not logically valid; and when the 11-gene
-#   signature is actually scored it is **not** HSC-specific at the scRNA level.
-# -----------------------------------------------------------------------------
-#
-# What this script does:
-#   Part 1  Scores both signatures on the same object -- the 16-gene HGF+ HSC
-#           signature and the 11-gene tissue signature -- and cross-checks two
-#           scoring methods (AddModuleScore and per-gene z-score)
-#   Part 2  Redraws Figure 3 with panel d set to the **16-gene HGF+ HSC
-#           signature**, which is homologous to panels a/b/c, internally
-#           consistent, and a result that genuinely holds
-#   Part 3  Produces a separate supplementary figure showing the cell-type
-#           distribution of the 11-gene tissue signature (reported honestly)
-#
-# Usage:  cd ~/Desktop/sjfx3
-#         Rscript Figure3_redraw.R
-#
-# Output: results/sig16_vs_sig11_in_scRNA.csv
-#         results/signature_celltype_scores.rds      (small; for later redraws)
-#         figures/final/Figure3_v2.pdf / .png        (main figure, panel d fixed)
-#         figures/final/FigureS_tissue_sig_celltypes.pdf / .png  (supplementary)
+# Usage: cd ~/Desktop/sjfx3 && Rscript Figure3_redraw.R
 # =============================================================================
 
 RUN_PART1 <- TRUE    # needs the ~1.3 GB Seurat object; may be set FALSE after one run
