@@ -1,0 +1,32 @@
+cff-version: 1.2.0
+message: "If you use this code, please cite the article below."
+title: "A spatially defined pericentral HGF+ HSC niche adjacent to Hep.4 hepatocytes in F2 MASLD fibrosis"
+authors:
+  - family-names: Wu
+    given-names: Zihan
+    orcid: "https://orcid.org/0009-0006-0403-5691"
+  - family-names: Guo
+    given-names: Lirong
+    orcid: "https://orcid.org/0009-0001-0856-7613"
+  - family-names: Long
+    given-names: Siheng
+    orcid: "https://orcid.org/0009-0008-6118-0937"
+  - family-names: Yang
+    given-names: Hongju
+    orcid: "https://orcid.org/0000-0001-7310-9072"
+type: software
+license: MIT
+repository-code: "https://github.com/2sg59mnjnb-commits/MASLD-HGF-HSC-niche"
+keywords:
+  - MASLD
+  - MASH
+  - liver fibrosis
+  - hepatic stellate cells
+  - spatial transcriptomics
+  - CosMx
+  - gene expression signature
+abstract: >-
+  Analysis code reproducing the spatial, single-cell and bulk-transcriptomic
+  analyses of an HGF-expressing hepatic stellate cell niche adjacent to Hep.4
+  hepatocytes in F2 MASLD fibrosis, together with the development and external
+  validation of an 11-gene fibrosis signature.
